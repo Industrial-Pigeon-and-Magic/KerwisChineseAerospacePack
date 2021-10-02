@@ -51,7 +51,7 @@ namespace KerwisShader
 						case RuntimePlatform.OSXPlayer:
 							m_shaderAB = AssetBundle.LoadFromFile(Path.Combine(DllDirectory, name + "_osx.assetbundle")); break;
 						case RuntimePlatform.LinuxPlayer:
-							m_shaderAB = AssetBundle.LoadFromFile(Path.Combine(DllDirectory, name + "_linux64")); break;
+							m_shaderAB = AssetBundle.LoadFromFile(Path.Combine(DllDirectory, name + "_linux64.assetbundle")); break;
 						default:
 							Debug.Log("KerwisShader:Runtime Platform " + Application.platform + " not supported"); break;
 					}
