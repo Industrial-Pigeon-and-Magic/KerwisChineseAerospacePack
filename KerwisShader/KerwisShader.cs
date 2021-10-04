@@ -157,10 +157,10 @@ namespace KerwisShader
 				LogError("未能获取到part的材质球!");
 				return;
 			}
-            string text = "";
+#if DEBUG
+            		string text = "";
 			foreach (string str in materialDict.Keys)
 				text = text + "\n" + str;
-#if DEBUG
 			Log("获取到" + materialDict.Count.ToString() + "个材质球,分别为" + text);
 #endif
 
@@ -184,14 +184,14 @@ namespace KerwisShader
 				foreach (FileInfo t in ddsFiles)
 					text2 = text2 + "\n" + t.Name + ",";
 				Log(text2);
-            }
+            		}
 #endif
 			
 			//读取给Transform特别指定的shader
 			string[] TransformShaderpairs = ShaderType.Replace(" ", "").Split(';');
 			Dictionary<string, string> TransformShaderPairs = new Dictionary<string, string>();
 			foreach(string s in TransformShaderpairs)
-            {
+            		{
 				string[] pair = s.Split(':');
 				if (pair.Length == 2)
 				{
