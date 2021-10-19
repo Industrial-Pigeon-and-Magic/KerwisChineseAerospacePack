@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 
-namespace KerwisDDSLoader
+namespace Kerwis.DDSLoader
 {
     /// <summary>
     /// 加载DDS文件为Texture2D.通过单例Instance调用,因为要实现缓存已加载dds的功能
