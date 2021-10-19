@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using KerwisDDSLoader;
+using Kerwis.DDSLoader;
 using System.Reflection;
 using UnityEngine;
 using System.Linq;
