@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -6,10 +6,11 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 
-namespace UnityDDSLoader
+namespace KerwisDDSLoader
 {
     /// <summary>
     /// 加载DDS文件为Texture2D.通过单例Instance调用,因为要实现缓存已加载dds的功能
+    /// 作者:Bilibili @矢速Velctor
     /// </summary>
     public class DDSLoader
     {
@@ -83,7 +84,7 @@ namespace UnityDDSLoader
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
             {
-                Debug.Log("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
+                Debug.LogError("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
                 ddsHandle.Free();
                 return null;
             }
@@ -132,7 +133,7 @@ namespace UnityDDSLoader
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
             {
-                Debug.Log("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
+                Debug.LogError("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
                 ddsHandle.Free();
                 return null;
             }
@@ -178,7 +179,7 @@ namespace UnityDDSLoader
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
             {
-                Debug.Log("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
+                Debug.LogError("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
                 ddsHandle.Free();
                 return null;
             }
@@ -205,8 +206,8 @@ namespace UnityDDSLoader
             if (!(DDPF_FOURCC || FourCC != 0))
                 Debug.Log("这个分支将永远不会在正常的dds格式下被运行." +
                     "这个插件专用于Kerwis的mod,仅在我们定制的美术流程范围内被验证:" +
-                    "Nvidia Texture Tool 2021-(BC1,BC3,BC5,BC6H,BC7,8.8.8 uncompressed)" +
-                    "如果你反编译了这个dll并计划用作其它用途,请自行验证并完善GraphicsFormat识别部分.");
+                    "Nvidia Texture Tool 2021-BC1,BC3,BC4,BC5,BC6H,BC7" +
+                    "如果你计划使用这个程序作其它用途,请自行验证并完善GraphicsFormat识别部分.");
             if (DDPF_FOURCC)
             {
                 switch(FourCC)
