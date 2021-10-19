@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using UnityDDSLoader;
-using System.Linq;
+using KerwisDDSLoader;
 using System.Reflection;
 using UnityEngine;
+using System.Linq;
 
 namespace KerwisShader
 {
@@ -13,8 +13,6 @@ namespace KerwisShader
 		metallic,
 		smoothness,
 		ambient,
-		defaulttemperature,
-		phongtesstrength
 	}
 	public class KerwisShader : PartModule
 	{
@@ -32,7 +30,6 @@ namespace KerwisShader
 
 		private static Shader m_CutoffShader;
 
-		private static Shader m_TessellationShader;
 		public static AssetBundle shaderAB
 		{
 			get
@@ -82,15 +79,6 @@ namespace KerwisShader
 				return m_CutoffShader;
 			}
 		}
-		public static Shader TessellationShader
-		{
-			get
-			{
-				if (m_TessellationShader == null) m_TessellationShader = shaderAB.LoadAsset<Shader>("KerwisLitTessellation");
-				if (m_TessellationShader == null) Debug.LogError("KerwisShader:未找到Lit Tessellation Shader!");
-				return m_TessellationShader;
-			}
-		}
 
 		[KSPField(isPersistant = false)]
 		public string TextureFolder = "";
@@ -136,8 +124,8 @@ namespace KerwisShader
 		[KSPField]
 		public string MatParams;
 
-		[KSPField]
-		public bool PhysicallyBlackBody = false;
+		//[KSPField]
+		//public bool PhysicallyBlackBody = false;
 
 		private Dictionary<string, List<Renderer>> materialDict;
 		public override void OnStart(StartState state)
@@ -158,7 +146,7 @@ namespace KerwisShader
 				return;
 			}
 #if DEBUG
-            		string text = "";
+            string text = "";
 			foreach (string str in materialDict.Keys)
 				text = text + "\n" + str;
 			Log("获取到" + materialDict.Count.ToString() + "个材质球,分别为" + text);
@@ -184,14 +172,14 @@ namespace KerwisShader
 				foreach (FileInfo t in ddsFiles)
 					text2 = text2 + "\n" + t.Name + ",";
 				Log(text2);
-            		}
+            }
 #endif
 			
 			//读取给Transform特别指定的shader
 			string[] TransformShaderpairs = ShaderType.Replace(" ", "").Split(';');
 			Dictionary<string, string> TransformShaderPairs = new Dictionary<string, string>();
 			foreach(string s in TransformShaderpairs)
-            		{
+            {
 				string[] pair = s.Split(':');
 				if (pair.Length == 2)
 				{
@@ -229,8 +217,6 @@ namespace KerwisShader
 							case "metallic": paramtype = MatParamType.metallic; break;
 							case "smoothness": paramtype = MatParamType.smoothness; break;
 							case "ambient": paramtype = MatParamType.ambient; break;
-							case "defaulttemperature": paramtype = MatParamType.defaulttemperature; break;
-							case "phongtesstrength": paramtype = MatParamType.phongtesstrength; break;
 							default:
 								{
 									LogError("未知的材质参数种类:" + sarray2[isFirstToken] + ".将跳过此参数.");
@@ -254,25 +240,21 @@ namespace KerwisShader
 				{
 					//替换shader
 					if (TransformShaderPairs.ContainsKey(r.gameObject.name))
+					{
+#if DEBUG
+						Log("正在给" + r.gameObject.name + "替换shader:" + TransformShaderPairs[r.gameObject.name]);
+#endif
 						switch (TransformShaderPairs[r.gameObject.name])
 						{
 							case "cutout": r.sharedMaterial.shader = CutoffShader; break;
-							case "tessellation":
-								{
-									r.sharedMaterial.shader = TessellationShader;
-									if (TransformMatParamPairs.ContainsKey(r.gameObject.name))
-										if (TransformMatParamPairs[r.gameObject.name].ContainsKey(MatParamType.phongtesstrength))
-											r.sharedMaterial.SetFloat("_TessPhongStrength", TransformMatParamPairs[r.gameObject.name][MatParamType.phongtesstrength]);
-									Log("给物体" + r.gameObject.name + "指定了曲面细分shader,_TessPhongStrength = " + r.sharedMaterial.GetFloat("_TessPhongStrength"));
-									break;
-								}
 							default:
 								{
 									LogError("未找到Shader\"" + TransformShaderPairs[r.gameObject.name] + "\"给GameObject\"" + r.gameObject.name + "\".正在使用Lit shader.\n" +
-										"KerwisShader插件现版本除了默认Shader\"Lit\"外只有两种:\"cutout\"与\"tessellation\".");
+										"KerwisShader插件现版本除了默认Shader\"Lit\"外只有一种:\"cutout\".");
 									r.sharedMaterial.shader = LitShader; break;
 								}
 						}
+					}
 					else r.sharedMaterial.shader = LitShader;
 					//如果cfg有专门指定当前Transform的材质参数
 					if (TransformMatParamPairs.ContainsKey(r.gameObject.name))
@@ -286,7 +268,6 @@ namespace KerwisShader
 								case MatParamType.metallic: r.sharedMaterial.SetFloat("_Metallic", param.Value); break;
 								case MatParamType.smoothness: r.sharedMaterial.SetFloat("_Smoothness", param.Value); break;
 								case MatParamType.ambient: r.sharedMaterial.SetFloat("_AmbientMultiplier", param.Value); break;
-								case MatParamType.defaulttemperature: r.sharedMaterial.SetFloat("_Temperature", param.Value); break;
 							}
 					}
 				}
@@ -328,22 +309,22 @@ namespace KerwisShader
 			BaseField baseField = base.Fields["EditingMat"];
 			baseField.uiControlEditor.onFieldChanged = new Callback<BaseField, object>(ChangeSelectedMat);
 			baseField.uiControlFlight.onFieldChanged = new Callback<BaseField, object>(ChangeSelectedMat);
-			string[] array = materialDict.Keys.ToArray<string>();
+			string[] array = materialDict.Keys.ToArray();
 			((UI_ChooseOption)baseField.uiControlEditor).options = array;
 			((UI_ChooseOption)baseField.uiControlFlight).options = array;
 			EditingMat = array[0];
 			ChangeSelectedMat(baseField, 1f);
-			Log("使用part的温度作为黑体辐射自发光参考值:" + PhysicallyBlackBody);
+			//Log("使用part的温度作为黑体辐射自发光参考值:" + PhysicallyBlackBody);
 #endif
 		}
-
+		/*
 		public override void OnUpdate()
 		{
 			if (PhysicallyBlackBody)
 				foreach (KeyValuePair<string, List<Renderer>> pair in materialDict)
 					foreach (Renderer r in pair.Value)
 						r.sharedMaterial.SetFloat("_Temperature", (float)part.temperature);
-		}
+		}*/
 #if DEBUG
 		private void ChangeEmissionColor(BaseField field, object oldValueObj)
 		{
