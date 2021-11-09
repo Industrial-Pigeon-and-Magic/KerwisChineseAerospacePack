@@ -19,7 +19,7 @@ namespace Kerwis.DDSLoader
         const int BytesPerInt = 4;
 
         /// <summary>
-        /// DDSLoader的单例
+        /// DDSLoader的静态单实例
         /// </summary>
         public static DDSLoader Instance = new DDSLoader();
 
