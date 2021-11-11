@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // 控制。更改这些特性值可修改
 // 与程序集关联的信息。
 [assembly: AssemblyTitle("PartMusic")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("part music player")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Kerwis Team")]
 [assembly: AssemblyProduct("PartMusic")]
-[assembly: AssemblyCopyright("Copyright ©  2021")]
+[assembly: AssemblyCopyright("By Bilibili@矢速Velctor")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

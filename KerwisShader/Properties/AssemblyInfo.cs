@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyVersion("0.6.0.0")]
+[assembly: AssemblyVersion("0.7.0.0")]
 [assembly: AssemblyTitle("KerwisShader")]
 [assembly: AssemblyDescription("KSP Shader Replacer for Kerwis mods")]
 [assembly: AssemblyConfiguration("")]
@@ -14,4 +14,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("e94ebc0f-ad19-4a0d-9e08-7e699e401eb2")]
-[assembly: AssemblyFileVersion("0.6.0.0")]
+[assembly: AssemblyFileVersion("0.7.0.0")]

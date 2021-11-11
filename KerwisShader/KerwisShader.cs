@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Kerwis.DDSLoader;
@@ -30,6 +30,9 @@ namespace KerwisShader
 
 		private static Shader m_CutoffShader;
 
+		private static Shader m_TransparentShader;
+
+		private static Shader m_BlackBodyShader;
 		public static AssetBundle shaderAB
 		{
 			get
@@ -63,8 +66,12 @@ namespace KerwisShader
 		{
 			get
 			{
-				if (m_LitShader == null) m_LitShader = shaderAB.LoadAsset<Shader>("KerwisLit");
-				if (m_LitShader == null) Debug.LogError("KerwisShader:未找到Lit Shader!");
+				if (m_LitShader == null)
+				{
+					m_LitShader = shaderAB.LoadAsset<Shader>("KerwisLit");
+					if (m_LitShader == null)
+						Debug.LogError("KerwisShader:未找到Lit Shader!");
+				}
 				return m_LitShader;
 			}
 		}
@@ -73,10 +80,38 @@ namespace KerwisShader
 			get
 			{
 				if (m_CutoffShader == null)
+				{
 					m_CutoffShader = shaderAB.LoadAsset<Shader>("KerwisLitCutout");
-				if (m_CutoffShader == null)
-					Debug.LogError("KerwisShader:未找到Lit Cutout Shader!");
+					if (m_CutoffShader == null)
+						Debug.LogError("KerwisShader:未找到Lit Cutout Shader!");
+				}
 				return m_CutoffShader;
+			}
+		}
+		public static Shader TransparentShader
+		{
+			get
+			{
+				if (m_TransparentShader == null)
+				{
+					m_TransparentShader = shaderAB.LoadAsset<Shader>("KerwisLitTransparent");
+					if (m_TransparentShader == null)
+						Debug.LogError("KerwisShader:未找到Lit Transparent Shader!");
+				}
+				return m_TransparentShader;
+			}
+		}
+		public static Shader BlackBodyShader
+		{
+			get
+			{
+				if (m_BlackBodyShader == null)
+				{
+					m_BlackBodyShader = shaderAB.LoadAsset<Shader>("KerwisLitBlackBody");
+					if (m_BlackBodyShader == null)
+						Debug.LogError("KerwisShader:未找到Lit BlackBody Shader!");
+				}
+				return m_BlackBodyShader;
 			}
 		}
 
@@ -90,22 +125,6 @@ namespace KerwisShader
 		[KSPField(guiName = "正在编辑材质:", isPersistant = true, guiActive = true, guiActiveEditor = true)]
 		public string EditingMat = "";
 
-		[UI_FloatRange(scene = UI_Scene.All, minValue = 0f, maxValue = 3f)]
-		[KSPField(guiName = "自发光R", isPersistant = true, guiActive = true, guiActiveEditor = true)]
-		public float emisR;
-
-		[UI_FloatRange(scene = UI_Scene.All, minValue = 0f, maxValue = 3f)]
-		[KSPField(guiName = "自发光G", isPersistant = true, guiActive = true, guiActiveEditor = true)]
-		public float emisG;
-
-		[UI_FloatRange(scene = UI_Scene.All, minValue = 0f, maxValue = 3f)]
-		[KSPField(guiName = "自发光B", isPersistant = true, guiActive = true, guiActiveEditor = true)]
-		public float emisB;
-
-		[UI_FloatRange(scene = UI_Scene.All, minValue = 0f, maxValue = 3f)]
-		[KSPField(guiName = "自发光A", isPersistant = true, guiActive = true, guiActiveEditor = true)]
-		public float emisA;
-
 		[UI_FloatRange(scene = UI_Scene.All, minValue = 0f, maxValue = 1.5f, stepIncrement = 0.05f)]
 		[KSPField(guiName = "金属度", isPersistant = true, guiActive = true, guiActiveEditor = true)]
 		public float metallic = 1f;
@@ -118,16 +137,28 @@ namespace KerwisShader
 		[KSPField(guiName = "环境光", isPersistant = true, guiActive = true, guiActiveEditor = true)]
 		public float ao = 1f;
 #endif
+
+		[UI_ChooseOption(scene = UI_Scene.Editor, options = new string[] { })]
+		[KSPField(guiName = "#autoLOC_KS_using_Texture_Variant", isPersistant = true, guiActive = true, guiActiveEditor = true)]
+		public string CurrentTextureVariant = "";
+
 		[KSPField]
 		public string ShaderType = "";
 
 		[KSPField]
-		public string MatParams;
+		public string MatParams = "";
 
-		//[KSPField]
-		//public bool PhysicallyBlackBody = false;
+		[KSPField]
+		public string MatTexMapping = "";
+
+		[KSPField]
+		public string TextureVariantKeys = "";
 
 		private Dictionary<string, List<Renderer>> materialDict;
+
+		Dictionary<string, string> matTexMapping;
+
+		FileInfo[] ddsFiles;
 		public override void OnStart(StartState state)
 		{
 			base.OnStart(state);
@@ -159,7 +190,7 @@ namespace KerwisShader
 				LogError("未找到贴图目录:" + TextureFolder);
 				return;
 			}
-			FileInfo[] ddsFiles = TexFolder.GetFiles("*.dds");
+			ddsFiles = TexFolder.GetFiles("*.dds");
 #if DEBUG
 			if (ddsFiles.Length == 0)
 			{
@@ -185,11 +216,29 @@ namespace KerwisShader
 				{
 					TransformShaderPairs.Add(pair[0], pair[1]);
 #if DEBUG
-					Log("cfg给GameObject" + pair[0] + "指定了shader名称:" + pair[1]);
+					Log("cfg给GameObject " + pair[0] + "指定了shader名称:" + pair[1]);
 #endif
 				}
 			}
-			
+
+			//读取修改过的材质名称-贴图名称映射
+			matTexMapping = new Dictionary<string, string>();
+			if (!string.IsNullOrEmpty(MatTexMapping))
+			{
+#if DEBUG
+				Log("正在读取Mat-Tex Mapping...");
+#endif
+				foreach (string s in MatTexMapping.Replace(" ", "").Split(';'))
+				{
+					string[] pair = s.Split(':');
+					if (pair.Length != 2) continue;
+					matTexMapping.Add(pair[0], pair[1]);
+#if DEBUG
+					Log("增加了材质名到贴图搜索关键词的映射修改:" + pair[0] + "-" + pair[1]);
+#endif
+				}
+			}
+
 			//读取cfg中指定的材质参数
 			//示例 MatParams = [TransformName]:metallic:0.7,smoothness:0.3;[TransformName]:metallic: 0.7,smoothness: 0.3; ...
 			Dictionary<string, Dictionary<MatParamType, float>> TransformMatParamPairs = new Dictionary<string, Dictionary<MatParamType, float>>();
@@ -203,7 +252,7 @@ namespace KerwisShader
 				foreach (string s in TransformMatParampairs)
 				{
 					if (string.IsNullOrEmpty(s)) continue;
-					string[] sarray1 = s.Split(',');//[TransformName]:metallic:0.7		smoothness:0.3
+					string[] sarray1 = s.Split(',');//[TransformName]:metallic:0.7	smoothness:0.3
                     string TransformName = sarray1[0].Split(':')[0];
                     TransformMatParamPairs.Add(TransformName, new Dictionary<MatParamType, float>());
 					byte isFirstToken = 1;
@@ -233,111 +282,105 @@ namespace KerwisShader
 				}
 			}
 			//遍历每一个材质球名称
-			foreach (KeyValuePair<string, List<Renderer>> keyValuePair in materialDict)
+			foreach (KeyValuePair<string, List<Renderer>> MatName_Renderers_Pair in materialDict)
 			{
 				//遍历Renderer列表
-				foreach (Renderer r in keyValuePair.Value)
+				foreach (Renderer renderer in MatName_Renderers_Pair.Value)
 				{
 					//替换shader
-					if (TransformShaderPairs.ContainsKey(r.gameObject.name))
+					if (TransformShaderPairs.ContainsKey(renderer.gameObject.name))
 					{
 #if DEBUG
-						Log("正在给" + r.gameObject.name + "替换shader:" + TransformShaderPairs[r.gameObject.name]);
+						Log("正在给" + renderer.gameObject.name + "替换shader:" + TransformShaderPairs[renderer.gameObject.name]);
 #endif
-						switch (TransformShaderPairs[r.gameObject.name])
+						switch (TransformShaderPairs[renderer.gameObject.name])
 						{
-							case "cutout": r.sharedMaterial.shader = CutoffShader; break;
+							case "cutout": renderer.sharedMaterial.shader = CutoffShader; break;
+							case "transparent": renderer.sharedMaterial.shader = TransparentShader; break;
+							case "blackbody": renderer.sharedMaterial.shader = BlackBodyShader; break;
+							case "lit": renderer.sharedMaterial.shader = LitShader; break;
 							default:
 								{
-									LogError("未找到Shader\"" + TransformShaderPairs[r.gameObject.name] + "\"给GameObject\"" + r.gameObject.name + "\".正在使用Lit shader.\n" +
-										"KerwisShader插件现版本除了默认Shader\"Lit\"外只有一种:\"cutout\".");
-									r.sharedMaterial.shader = LitShader; break;
+									LogError("未找到Shader\"" + TransformShaderPairs[renderer.gameObject.name] + "\"for GameObject \"" + renderer.gameObject.name + "\".正在使用Lit shader.\n" +
+										"KerwisShader插件现版本除了默认Shader\"Lit\"外只有三种:\"cutout\",\"transparent\",\"blackbody\".");
+									renderer.sharedMaterial.shader = LitShader; break;
 								}
 						}
 					}
-					else r.sharedMaterial.shader = LitShader;
+					else renderer.sharedMaterial.shader = LitShader;
 					//如果cfg有专门指定当前Transform的材质参数
-					if (TransformMatParamPairs.ContainsKey(r.gameObject.name))
+					if (TransformMatParamPairs.ContainsKey(renderer.gameObject.name))
 					{
 #if DEBUG
-						Log("正在给" + r.gameObject.name + "设置参数...");
+						Log("正在给" + renderer.gameObject.name + "设置参数...");
 #endif
-						foreach (KeyValuePair<MatParamType, float> param in TransformMatParamPairs[r.gameObject.name])
+						foreach (KeyValuePair<MatParamType, float> param in TransformMatParamPairs[renderer.gameObject.name])
 							switch (param.Key)
 							{
-								case MatParamType.metallic: r.sharedMaterial.SetFloat("_Metallic", param.Value); break;
-								case MatParamType.smoothness: r.sharedMaterial.SetFloat("_Smoothness", param.Value); break;
-								case MatParamType.ambient: r.sharedMaterial.SetFloat("_AmbientMultiplier", param.Value); break;
+								case MatParamType.metallic: renderer.sharedMaterial.SetFloat("_Metallic", param.Value); break;
+								case MatParamType.smoothness: renderer.sharedMaterial.SetFloat("_Smoothness", param.Value); break;
+								case MatParamType.ambient: renderer.sharedMaterial.SetFloat("_AmbientMultiplier", param.Value); break;
 							}
 					}
 				}
-
-				//遍历之前获得的dds文件列表,指定dds贴图
-				foreach (FileInfo ddsInfo in ddsFiles)
-				{
-					if (ddsInfo.Name.Contains(keyValuePair.Key))
-						if (ddsInfo.Name.Contains("BaseMap"))
-							foreach (Renderer r in keyValuePair.Value)
-								r.sharedMaterial.SetTexture("_BaseMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
-						else if (ddsInfo.Name.Contains("MaskMap"))
-							foreach (Renderer r in keyValuePair.Value)
-								r.sharedMaterial.SetTexture("_MaskMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
-						else if (ddsInfo.Name.Contains("Normal"))
-							foreach (Renderer r in keyValuePair.Value)
-								r.sharedMaterial.SetTexture("_NormalMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
-						else if (ddsInfo.Name.Contains("Emissive"))
-							foreach (Renderer r in keyValuePair.Value)
-								r.sharedMaterial.SetTexture("_EmissiveMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
-				}
 			}
+			if(string.IsNullOrWhiteSpace(CurrentTextureVariant))
+            {
+				Fields[nameof(CurrentTextureVariant)].guiActive = false;
+				Fields[nameof(CurrentTextureVariant)].guiActiveEditor = false;
+				CurrentTextureVariant = "";
+			}
+            else
+			{
+				UI_ChooseOption chooseTexUI = (UI_ChooseOption)Fields[CurrentTextureVariant].uiControlEditor;
+				chooseTexUI.onFieldChanged = ChangeTexture;
+				var TexVariantsArray = TextureVariantKeys.Replace(" ", "").Trim(';').Split(';');
+				chooseTexUI.options = TexVariantsArray;
+				CurrentTextureVariant = TexVariantsArray[0];
+			}
+			ChangeTexture(Fields[nameof(CurrentTextureVariant)], 0);
 #if DEBUG
-			Callback<BaseField, object> changeEmisCol = ChangeEmissionColor;
-			Fields["emisR"].uiControlEditor.onFieldChanged = changeEmisCol;
-			Fields["emisG"].uiControlEditor.onFieldChanged = changeEmisCol;
-			Fields["emisB"].uiControlEditor.onFieldChanged = changeEmisCol;
-			Fields["emisA"].uiControlEditor.onFieldChanged = changeEmisCol;
-			Fields["emisR"].uiControlFlight.onFieldChanged = changeEmisCol;
-			Fields["emisG"].uiControlFlight.onFieldChanged = changeEmisCol;
-			Fields["emisB"].uiControlFlight.onFieldChanged = changeEmisCol;
-			Fields["emisA"].uiControlFlight.onFieldChanged = changeEmisCol;
-			Fields["metallic"].uiControlEditor.onFieldChanged = new Callback<BaseField, object>(ChangeMetallic);
-			Fields["metallic"].uiControlFlight.onFieldChanged = new Callback<BaseField, object>(ChangeMetallic);
-			Fields["smoothness"].uiControlEditor.onFieldChanged = new Callback<BaseField, object>(ChangeSmoothness);
-			Fields["smoothness"].uiControlFlight.onFieldChanged = new Callback<BaseField, object>(ChangeSmoothness);
-			Fields["ao"].uiControlEditor.onFieldChanged = new Callback<BaseField, object>(ChangeAmbientOcclusion);
-			Fields["ao"].uiControlFlight.onFieldChanged = new Callback<BaseField, object>(ChangeAmbientOcclusion);
-			BaseField baseField = base.Fields["EditingMat"];
-			baseField.uiControlEditor.onFieldChanged = new Callback<BaseField, object>(ChangeSelectedMat);
-			baseField.uiControlFlight.onFieldChanged = new Callback<BaseField, object>(ChangeSelectedMat);
+			Fields["metallic"].uiControlEditor.onFieldChanged = ChangeMetallic;
+			Fields["metallic"].uiControlFlight.onFieldChanged = ChangeMetallic;
+			Fields["smoothness"].uiControlEditor.onFieldChanged = ChangeSmoothness;
+			Fields["smoothness"].uiControlFlight.onFieldChanged = ChangeSmoothness;
+			Fields["ao"].uiControlEditor.onFieldChanged = ChangeAmbientOcclusion;
+			Fields["ao"].uiControlFlight.onFieldChanged = ChangeAmbientOcclusion;
+			BaseField baseField = Fields["EditingMat"];
+			baseField.uiControlEditor.onFieldChanged = ChangeSelectedMat;
+			baseField.uiControlFlight.onFieldChanged = ChangeSelectedMat;
 			string[] array = materialDict.Keys.ToArray();
 			((UI_ChooseOption)baseField.uiControlEditor).options = array;
 			((UI_ChooseOption)baseField.uiControlFlight).options = array;
 			EditingMat = array[0];
 			ChangeSelectedMat(baseField, 1f);
-			//Log("使用part的温度作为黑体辐射自发光参考值:" + PhysicallyBlackBody);
 #endif
 		}
-		/*
-		public override void OnUpdate()
-		{
-			if (PhysicallyBlackBody)
-				foreach (KeyValuePair<string, List<Renderer>> pair in materialDict)
-					foreach (Renderer r in pair.Value)
-						r.sharedMaterial.SetFloat("_Temperature", (float)part.temperature);
-		}*/
-#if DEBUG
-		private void ChangeEmissionColor(BaseField field, object oldValueObj)
-		{
-			List<Renderer> list;
-			if (materialDict.TryGetValue(EditingMat, out list))
-				foreach (Renderer r in list)
-					r.sharedMaterial.SetColor("_EmissiveColor", new Color(emisR, emisG, emisB, emisA));
+		void ChangeTexture(BaseField field, object oldValueObj)
+        {
+			Log(CurrentTextureVariant);
+			foreach (KeyValuePair<string, List<Renderer>> MatName_Renderers_Pair in materialDict)
+				foreach (FileInfo ddsInfo in ddsFiles)
+                {
+                    if (ddsInfo.Name.Contains(matTexMapping.ContainsKey(MatName_Renderers_Pair.Key) ? matTexMapping[MatName_Renderers_Pair.Key] : MatName_Renderers_Pair.Key) && ddsInfo.Name.Contains(CurrentTextureVariant))
+							if (ddsInfo.Name.Contains("BaseMap"))
+								foreach (Renderer r in MatName_Renderers_Pair.Value)
+									r.sharedMaterial.SetTexture("_BaseMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
+							else if (ddsInfo.Name.Contains("MaskMap"))
+								foreach (Renderer r in MatName_Renderers_Pair.Value)
+									r.sharedMaterial.SetTexture("_MaskMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
+							else if (ddsInfo.Name.Contains("Normal"))
+								foreach (Renderer r in MatName_Renderers_Pair.Value)
+									r.sharedMaterial.SetTexture("_NormalMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
+							else if (ddsInfo.Name.Contains("Emissive"))
+								foreach (Renderer r in MatName_Renderers_Pair.Value)
+									r.sharedMaterial.SetTexture("_EmissiveMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
+				}
 		}
-
+#if DEBUG
 		private void ChangeMetallic(BaseField field, object oldValueObj)
 		{
-			List<Renderer> list;
-			if (materialDict.TryGetValue(this.EditingMat, out list))
+			if (materialDict.TryGetValue(this.EditingMat, out List<Renderer> list))
 				foreach (Renderer material in list)
 					material.sharedMaterial.SetFloat("_Metallic", this.metallic);
 		}
@@ -363,21 +406,16 @@ namespace KerwisShader
                 ao = list[0].sharedMaterial.GetFloat("_AmbientMultiplier");
                 metallic = list[0].sharedMaterial.GetFloat("_Metallic");
                 smoothness = list[0].sharedMaterial.GetFloat("_Smoothness");
-                Color color = list[0].sharedMaterial.GetColor("_EmissiveColor");
-                emisR = color.r;
-                emisG = color.g;
-                emisB = color.b;
-                emisA = color.a;
             }
         }
 #endif
 		void Log(string message)
 		{
-			Debug.Log("KerwisShader at part " + part.name + ":" + message);
+			Debug.Log("KerwisShader@" + part.name + ":" + message);
 		}
 		void LogError(string message)
 		{
-			Debug.LogError("KerwisShader at part " + part.name + ":" + message);
+			Debug.LogError("KerwisShader@" + part.name + ":" + message);
 		}
 	}
 }

@@ -27,11 +27,11 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>F:\SteamLibrary\steamapps\common\Kerbal Space Program\GameData\KerwisChinaAerospacePack\Plugins\</OutputPath>
+    <OutputPath>F:\SteamLibrary\steamapps\common\Kerbal Space Program\GameData\KerwisChineseAerospacePack\Plugins\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>F:\SteamLibrary\steamapps\common\Kerbal Space Program\GameData\KerwisChinaAerospacePack\Plugins\DDSLoader.xml</DocumentationFile>
+    <DocumentationFile>F:\SteamLibrary\steamapps\common\Kerbal Space Program\GameData\KerwisChineseAerospacePack\Plugins\DDSLoader.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -55,8 +55,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Program - 复制.cs" />
-    <None Include="Program.cs" />
     <Compile Include="DDSLoader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

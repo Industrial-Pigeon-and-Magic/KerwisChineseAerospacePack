@@ -15,8 +15,14 @@ namespace PartMusic
 
         void Start()
         {
+            AudioClip MusicClip = GameDatabase.Instance.GetAudioClip(AudioFile);
+            if(MusicClip is null)
+            {
+                Debug.LogError("PartMusic did not found Audio wav at " + AudioFile);
+                return;
+            }
             player = part.gameObject.AddComponent<AudioSource>();
-            player.clip = GameDatabase.Instance.GetAudioClip(AudioFile);
+            player.clip = MusicClip;
             player.loop = true;
         }
 
