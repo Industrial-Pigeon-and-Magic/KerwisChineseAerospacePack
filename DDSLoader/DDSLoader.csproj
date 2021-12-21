@@ -28,10 +28,12 @@
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>F:\SteamLibrary\steamapps\common\Kerbal Space Program\GameData\KerwisChineseAerospacePack\Plugins\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>F:\SteamLibrary\steamapps\common\Kerbal Space Program\GameData\KerwisChineseAerospacePack\Plugins\DDSLoader.xml</DocumentationFile>
+    <DocumentationFile>
+    </DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />

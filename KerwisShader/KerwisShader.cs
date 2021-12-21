@@ -4,7 +4,9 @@ using System.IO;
 using Kerwis.DDSLoader;
 using System.Reflection;
 using UnityEngine;
+#if DEBUG
 using System.Linq;
+#endif
 
 namespace KerwisShader
 {
@@ -118,10 +120,7 @@ namespace KerwisShader
 		[KSPField(isPersistant = false)]
 		public string TextureFolder = "";
 #if DEBUG
-		[UI_ChooseOption(scene = UI_Scene.All, options = new string[]
-		{
-			"None"
-		})]
+		[UI_ChooseOption(scene = UI_Scene.All, options = new string[] {"None"})]
 		[KSPField(guiName = "正在编辑材质:", isPersistant = true, guiActive = true, guiActiveEditor = true)]
 		public string EditingMat = "";
 
@@ -138,7 +137,7 @@ namespace KerwisShader
 		public float ao = 1f;
 #endif
 
-		[UI_ChooseOption(scene = UI_Scene.Editor, options = new string[] { })]
+		[UI_ChooseOption(scene = UI_Scene.Editor, options = new string[] {"None"})]
 		[KSPField(guiName = "#autoLOC_KS_using_Texture_Variant", isPersistant = true, guiActive = true, guiActiveEditor = true)]
 		public string CurrentTextureVariant = "";
 
@@ -201,7 +200,7 @@ namespace KerwisShader
 			{
 				string text2 = "在" + TextureFolder + "中找到" + ddsFiles.Length + "个.dds文件:";
 				foreach (FileInfo t in ddsFiles)
-					text2 = text2 + "\n" + t.Name + ",";
+					text2 = text2 + "\n" + t.Name;
 				Log(text2);
             }
 #endif
@@ -222,8 +221,11 @@ namespace KerwisShader
 			}
 
 			//读取修改过的材质名称-贴图名称映射
+#if DEBUG
+			Log("正在读取修改过的材质名称-贴图名称映射...");
+#endif
 			matTexMapping = new Dictionary<string, string>();
-			if (!string.IsNullOrEmpty(MatTexMapping))
+			if (!string.IsNullOrEmpty(MatTexMapping))//M大写的是cfg里读到的字符串,m小写的是字典
 			{
 #if DEBUG
 				Log("正在读取Mat-Tex Mapping...");
@@ -241,11 +243,11 @@ namespace KerwisShader
 
 			//读取cfg中指定的材质参数
 			//示例 MatParams = [TransformName]:metallic:0.7,smoothness:0.3;[TransformName]:metallic: 0.7,smoothness: 0.3; ...
-			Dictionary<string, Dictionary<MatParamType, float>> TransformMatParamPairs = new Dictionary<string, Dictionary<MatParamType, float>>();
+			var TransformMatParamPairs = new Dictionary<string, Dictionary<MatParamType, float>>();
 			if (!string.IsNullOrEmpty(MatParams))
 			{
 #if DEBUG
-				Log("正在读取MatParams...");
+				Log("正在读取cfg中指定的材质参数...");
 #endif
 				MatParams = MatParams.Replace(" ", "");
 				string[] TransformMatParampairs = MatParams.Split(';');
@@ -324,7 +326,8 @@ namespace KerwisShader
 					}
 				}
 			}
-			if(string.IsNullOrWhiteSpace(CurrentTextureVariant))
+
+			if (string.IsNullOrEmpty(TextureVariantKeys))
             {
 				Fields[nameof(CurrentTextureVariant)].guiActive = false;
 				Fields[nameof(CurrentTextureVariant)].guiActiveEditor = false;
@@ -332,21 +335,24 @@ namespace KerwisShader
 			}
             else
 			{
-				UI_ChooseOption chooseTexUI = (UI_ChooseOption)Fields[CurrentTextureVariant].uiControlEditor;
-				chooseTexUI.onFieldChanged = ChangeTexture;
-				var TexVariantsArray = TextureVariantKeys.Replace(" ", "").Trim(';').Split(';');
-				chooseTexUI.options = TexVariantsArray;
+#if DEBUG
+				Log("正在读取贴图变种关键词...");
+#endif
+				BaseField chooseTexUI = Fields[nameof(CurrentTextureVariant)];
+				chooseTexUI.uiControlEditor.onFieldChanged = ChangeTexture;
+				string[] TexVariantsArray = TextureVariantKeys.Replace(" ", "").Trim(';').Split(';');
+				((UI_ChooseOption)chooseTexUI.uiControlEditor).options = TexVariantsArray;
 				CurrentTextureVariant = TexVariantsArray[0];
 			}
 			ChangeTexture(Fields[nameof(CurrentTextureVariant)], 0);
 #if DEBUG
-			Fields["metallic"].uiControlEditor.onFieldChanged = ChangeMetallic;
-			Fields["metallic"].uiControlFlight.onFieldChanged = ChangeMetallic;
-			Fields["smoothness"].uiControlEditor.onFieldChanged = ChangeSmoothness;
-			Fields["smoothness"].uiControlFlight.onFieldChanged = ChangeSmoothness;
-			Fields["ao"].uiControlEditor.onFieldChanged = ChangeAmbientOcclusion;
-			Fields["ao"].uiControlFlight.onFieldChanged = ChangeAmbientOcclusion;
-			BaseField baseField = Fields["EditingMat"];
+			Fields[nameof(metallic)].uiControlEditor.onFieldChanged = ChangeMetallic;
+			Fields[nameof(metallic)].uiControlFlight.onFieldChanged = ChangeMetallic;
+			Fields[nameof(smoothness)].uiControlEditor.onFieldChanged = ChangeSmoothness;
+			Fields[nameof(smoothness)].uiControlFlight.onFieldChanged = ChangeSmoothness;
+			Fields[nameof(ao)].uiControlEditor.onFieldChanged = ChangeAmbientOcclusion;
+			Fields[nameof(ao)].uiControlFlight.onFieldChanged = ChangeAmbientOcclusion;
+			BaseField baseField = Fields[nameof(EditingMat)];
 			baseField.uiControlEditor.onFieldChanged = ChangeSelectedMat;
 			baseField.uiControlFlight.onFieldChanged = ChangeSelectedMat;
 			string[] array = materialDict.Keys.ToArray();
@@ -358,29 +364,29 @@ namespace KerwisShader
 		}
 		void ChangeTexture(BaseField field, object oldValueObj)
         {
-			Log(CurrentTextureVariant);
+			Log("当前贴图变种:"+CurrentTextureVariant);
 			foreach (KeyValuePair<string, List<Renderer>> MatName_Renderers_Pair in materialDict)
 				foreach (FileInfo ddsInfo in ddsFiles)
                 {
                     if (ddsInfo.Name.Contains(matTexMapping.ContainsKey(MatName_Renderers_Pair.Key) ? matTexMapping[MatName_Renderers_Pair.Key] : MatName_Renderers_Pair.Key) && ddsInfo.Name.Contains(CurrentTextureVariant))
 							if (ddsInfo.Name.Contains("BaseMap"))
 								foreach (Renderer r in MatName_Renderers_Pair.Value)
-									r.sharedMaterial.SetTexture("_BaseMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
+									r.sharedMaterial.SetTexture("_BaseMap", DDSLoader.FromFile(ddsInfo.FullName));
 							else if (ddsInfo.Name.Contains("MaskMap"))
 								foreach (Renderer r in MatName_Renderers_Pair.Value)
-									r.sharedMaterial.SetTexture("_MaskMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
+									r.sharedMaterial.SetTexture("_MaskMap", DDSLoader.FromFile(ddsInfo.FullName));
 							else if (ddsInfo.Name.Contains("Normal"))
 								foreach (Renderer r in MatName_Renderers_Pair.Value)
-									r.sharedMaterial.SetTexture("_NormalMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
+									r.sharedMaterial.SetTexture("_NormalMap", DDSLoader.FromFile(ddsInfo.FullName));
 							else if (ddsInfo.Name.Contains("Emissive"))
 								foreach (Renderer r in MatName_Renderers_Pair.Value)
-									r.sharedMaterial.SetTexture("_EmissiveMap", DDSLoader.Instance.FromFile(ddsInfo.FullName));
+									r.sharedMaterial.SetTexture("_EmissiveMap", DDSLoader.FromFile(ddsInfo.FullName));
 				}
 		}
 #if DEBUG
 		private void ChangeMetallic(BaseField field, object oldValueObj)
 		{
-			if (materialDict.TryGetValue(this.EditingMat, out List<Renderer> list))
+			if (materialDict.TryGetValue(EditingMat, out List<Renderer> list))
 				foreach (Renderer material in list)
 					material.sharedMaterial.SetFloat("_Metallic", this.metallic);
 		}

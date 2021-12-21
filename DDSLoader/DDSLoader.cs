@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Threading.Tasks;
+//using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -8,26 +8,16 @@ using UnityEngine.Experimental.Rendering;
 
 namespace Kerwis.DDSLoader
 {
-    /// <summary>
-    /// 加载DDS文件为Texture2D.通过单例Instance调用,因为要实现缓存已加载dds的功能
-    /// </summary>
     public class DDSLoader
     {
         const int DXT10Header_ByteOffset = 124;
         const int PixelFormat_IntOffset = 18;
         const int BytesPerInt = 4;
 
-        /// <summary>
-        /// DDSLoader的单例
-        /// </summary>
-        public static DDSLoader Instance = new DDSLoader();
+        //public static DDSLoader Instance = new DDSLoader();
 
-        private Dictionary<int, Texture2D> ReferenceCache;
-
-        private DDSLoader()
-        {
-            ReferenceCache = new Dictionary<int, Texture2D>();
-        }
+        private static Dictionary<string, Texture2D> ReferenceCache = new Dictionary<string, Texture2D>();
+        /*
         private static int GetByteArrayHashCode(byte[] array)
         {
 #if DEBUG
@@ -52,14 +42,18 @@ namespace Kerwis.DDSLoader
             Debug.Log("hash time:" + sw.ElapsedMilliseconds+"ms.");
 #endif
             return hash;
-        }
-        /// <summary>
-        /// 从指定的位置加载一张dds为UnityEngine.Texture2D,编码将自动识别(未经所有dds种类验证)
-        /// </summary>
-        /// <param name="DDSPath">dds的完整目录</param>
-        /// <returns>获得的纹理.如果失败则返回空</returns>
-        public Texture2D FromFile(string DDSPath)
+        }*/
+
+        // <summary>
+        // 从指定的位置加载一张dds为UnityEngine.Texture2D,编码将自动识别(未经所有dds种类验证)
+        // </summary>
+        // <param name="DDSPath">dds的完整目录</param>
+        // <returns>获得的纹理.如果失败则返回空</returns>
+        public static Texture2D FromFile(string DDSPath)
         {
+            //如果加载过了,就直接返回之前加载的
+            if(ReferenceCache.ContainsKey(DDSPath)) return ReferenceCache[DDSPath];
+
             //加载所有字节
             byte[] DDSBytes;
             string ddsName = Path.GetFileName(DDSPath);
@@ -72,13 +66,10 @@ namespace Kerwis.DDSLoader
                 Debug.LogError("DDSLoader:Error while loading " + ddsName + ":\n" + e.GetType() + "\n:" + e.Message);
                 return null;
             }
-            //如果加载过了,就直接返回之前加载的
-            int DDSHash = GetByteArrayHashCode(DDSBytes);
+            //int DDSHash = GetByteArrayHashCode(DDSBytes);
 #if DEBUG
             Debug.Log("DDSLoader:Loading" + DDSPath+"\nHashCode:"+DDSHash.ToString("X"));
 #endif
-            if(ReferenceCache.ContainsKey(DDSHash)) return ReferenceCache[DDSHash];
-
             GCHandle ddsHandle = GCHandle.Alloc(DDSBytes, GCHandleType.Pinned);
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
@@ -102,17 +93,19 @@ namespace Kerwis.DDSLoader
             unitytex.Apply();
             ddsHandle.Free();
             //把加载好的Texture2D加入缓存
-            ReferenceCache.Add(DDSHash, unitytex);
+            ReferenceCache.Add(DDSPath, unitytex);
             return unitytex;
         }
-        /// <summary>
-        /// 从指定的位置以指定TextureFormat加载一张dds为UnityEngine.Texture2D
-        /// </summary>
-        /// <param name="DDSPath">dds的完整目录</param>
-        /// <param name="textureFormat">自行指定的TextureFormat.如果与指定dds实际编码不符,将导致错误</param>
-        /// <returns>获得的纹理.如果失败则返回空</returns>
-        public Texture2D FromFile(string DDSPath,TextureFormat textureFormat)
+        // <summary>
+        // 从指定的位置以指定TextureFormat加载一张dds为UnityEngine.Texture2D
+        // </summary>
+        // <param name="DDSPath">dds的完整目录</param>
+        // <param name="textureFormat">自行指定的TextureFormat.如果与指定dds实际编码不符,将导致错误</param>
+        // <returns>获得的纹理.如果失败则返回空</returns>
+        public static Texture2D FromFile(string DDSPath,TextureFormat textureFormat)
         {
+            if (ReferenceCache.ContainsKey(DDSPath)) return ReferenceCache[DDSPath];
+
             byte[] DDSBytes;
             string ddsName = Path.GetFileName(DDSPath);
             try
@@ -124,10 +117,7 @@ namespace Kerwis.DDSLoader
                 Debug.LogError("DDSLoader:Error while loading " + ddsName + ":\n" + e.GetType() + "\n:" + e.Message);
                 return null;
             }
-            //如果加载过了,就直接返回之前加载的
-            int DDSHash = GetByteArrayHashCode(DDSBytes);
-            if (ReferenceCache.ContainsKey(DDSHash)) return ReferenceCache[DDSHash];
-
+            //int DDSHash = GetByteArrayHashCode(DDSBytes);
             GCHandle ddsHandle = GCHandle.Alloc(DDSBytes, GCHandleType.Pinned);
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
@@ -147,18 +137,20 @@ namespace Kerwis.DDSLoader
             unitytex.Apply();
             ddsHandle.Free();
             //把加载好的Texture2D加入缓存
-            ReferenceCache.Add(DDSHash, unitytex);
+            ReferenceCache.Add(DDSPath, unitytex);
             return unitytex;
         }
-        /// <summary>
-        /// 从指定的位置以指定GraphicsFormat,TextureCreationFlags加载一张dds为UnityEngine.Texture2D
-        /// </summary>
-        /// <param name="DDSPath">dds的完整目录</param>
-        /// <param name="graphicsFormat">自行指定的GraphicsFormat.如果与指定dds实际编码不符,将导致错误</param>
-        /// <param name="flags">自行指定TextureCreationFlags.如果与指定dds实际不符,将可能导致错误</param>
-        /// <returns></returns>
-        public Texture2D FromFile(string DDSPath, GraphicsFormat graphicsFormat, TextureCreationFlags flags)
+        // <summary>
+        // 从指定的位置以指定GraphicsFormat,TextureCreationFlags加载一张dds为UnityEngine.Texture2D
+        // </summary>
+        // <param name="DDSPath">dds的完整目录</param>
+        // <param name="graphicsFormat">自行指定的GraphicsFormat.如果与指定dds实际编码不符,将导致错误</param>
+        // <param name="flags">自行指定TextureCreationFlags.如果与指定dds实际不符,将可能导致错误</param>
+        // <returns></returns>
+        public static Texture2D FromFile(string DDSPath, GraphicsFormat graphicsFormat, TextureCreationFlags flags)
         {
+            if (ReferenceCache.ContainsKey(DDSPath)) return ReferenceCache[DDSPath];
+
             byte[] DDSBytes;
             string ddsName = Path.GetFileName(DDSPath);
             try
@@ -170,10 +162,7 @@ namespace Kerwis.DDSLoader
                 Debug.LogError("DDSLoader:Error while loading " + ddsName + ":\n" + e.GetType() + "\n:" + e.Message);
                 return null;
             }
-            //如果加载过了,就直接返回之前加载的
-            int DDSHash = GetByteArrayHashCode(DDSBytes);
-            if (ReferenceCache.ContainsKey(DDSHash)) return ReferenceCache[DDSHash];
-
+            //int DDSHash = GetByteArrayHashCode(DDSBytes);
             GCHandle ddsHandle = GCHandle.Alloc(DDSBytes, GCHandleType.Pinned);
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
@@ -184,7 +173,7 @@ namespace Kerwis.DDSLoader
             }
             int width = Marshal.ReadInt32(Address, BytesPerInt * 4);
             int height = Marshal.ReadInt32(Address, BytesPerInt * 3);
-            int mipchain = Marshal.ReadInt32(Address, BytesPerInt * 7);
+            //int mipchain = Marshal.ReadInt32(Address, BytesPerInt * 7);
             int FourCC = Marshal.ReadInt32(Address, BytesPerInt * (PixelFormat_IntOffset + 3));
             int headerSize = FourCC == FC2I("DX10") ? 148 : 128;
             Texture2D unitytex = new Texture2D(width, height, graphicsFormat, flags);
@@ -193,7 +182,7 @@ namespace Kerwis.DDSLoader
             unitytex.Apply();
             ddsHandle.Free();
             //把加载好的Texture2D加入缓存
-            ReferenceCache.Add(DDSHash, unitytex);
+            ReferenceCache.Add(DDSPath, unitytex);
             return unitytex;
         }
         static int FC2I(string fourChar) => fourChar[0] | (fourChar[1] << 8) | (fourChar[2] << 16) | (fourChar[3] << 24);//four char to integer
@@ -205,8 +194,8 @@ namespace Kerwis.DDSLoader
             if (!(DDPF_FOURCC || FourCC != 0))
                 Debug.Log("这个分支将永远不会在正常的dds格式下被运行." +
                     "这个插件专用于Kerwis的mod,仅在我们定制的美术流程范围内被验证:" +
-                    "Nvidia Texture Tool 2021-(BC1,BC3,BC4,BC5,BC6H,BC7)" +
-                    "如果你反编译了这个dll并计划用作其它用途,请自行验证并完善GraphicsFormat识别部分.");
+                    "Nvidia Texture Tool 2021-(BC1,BC3,BC4,BC5)" +
+                    "如果你计划将这个dll用作其它用途,请自行验证并完善GraphicsFormat识别部分.");
             if (DDPF_FOURCC)
             {
                 switch(FourCC)
