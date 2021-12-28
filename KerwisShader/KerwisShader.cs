@@ -150,7 +150,7 @@ namespace KerwisShader
 		[KSPField]
 		public string MatTexMapping = "";
 
-		[KSPField]
+		[KSPField(isPersistant = false)]
 		public string TextureVariantKeys = "";
 
 		private Dictionary<string, List<Renderer>> materialDict;
@@ -327,22 +327,22 @@ namespace KerwisShader
 				}
 			}
 
-			if (string.IsNullOrEmpty(TextureVariantKeys))
-            {
+			if (string.IsNullOrWhiteSpace(TextureVariantKeys))
+			{
 				Fields[nameof(CurrentTextureVariant)].guiActive = false;
 				Fields[nameof(CurrentTextureVariant)].guiActiveEditor = false;
-				CurrentTextureVariant = "";
 			}
-            else
+			else
 			{
 #if DEBUG
 				Log("正在读取贴图变种关键词...");
 #endif
-				BaseField chooseTexUI = Fields[nameof(CurrentTextureVariant)];
-				chooseTexUI.uiControlEditor.onFieldChanged = ChangeTexture;
+				BaseField currentTexField = Fields[nameof(CurrentTextureVariant)];
+				currentTexField.uiControlEditor.onFieldChanged = ChangeTexture;
 				string[] TexVariantsArray = TextureVariantKeys.Replace(" ", "").Trim(';').Split(';');
-				((UI_ChooseOption)chooseTexUI.uiControlEditor).options = TexVariantsArray;
-				CurrentTextureVariant = TexVariantsArray[0];
+				((UI_ChooseOption)currentTexField.uiControlEditor).options = TexVariantsArray;
+				if (string.IsNullOrWhiteSpace(CurrentTextureVariant))
+					CurrentTextureVariant = TexVariantsArray[0];
 			}
 			ChangeTexture(Fields[nameof(CurrentTextureVariant)], 0);
 #if DEBUG
