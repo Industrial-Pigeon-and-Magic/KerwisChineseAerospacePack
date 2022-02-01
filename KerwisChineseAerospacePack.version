@@ -1,18 +1,25 @@
 {
     "NAME": "Kerwis Chinese Aerospace Pack",
-    "URL": "https://github.com/Industrial-Pigeon-and-Magic/KerwisChineseAerospacePack/raw/main/KerwisChineseAerospacePack.version",
-    "DOWNLOAD": "https://spacedock.info/mod/2867/Kerwis%20Chinese%20Aerospace%20Pack/download/1.1.1",
+    "URL": "https://raw.githubusercontent.com/Industrial-Pigeon-and-Magic/KerwisChineseAerospacePack/main/KerwisChineseAerospacePack.version",
+    "DOWNLOAD": "https://spacedock.info/mod/2867",
     "VERSION": {
-        "MAJOR": 1,
-        "MINOR": 1,
-		"PATCH": 1
+        "MAJOR":1,
+        "MINOR":1,
+        "PATCH":2,
     },
-    "KSP_VERSION_MIN": {
-        "MAJOR": 1,
-        "MINOR": 8
+    "KSP_VERSION":{
+        "MAJOR":1,
+        "MINOR":12,
+        "PATCH":1
     },
-    "KSP_VERSION_MAX": {
-        "MAJOR": 1,
-        "MINOR": 12
+    "KSP_VERSION_MIN":{
+        "MAJOR":1,
+        "MINOR":8,
+        "PATCH":1
+    },
+    "KSP_VERSION_MAX":{
+        "MAJOR":1,
+        "MINOR":12,
+        "PATCH":99
     }
 }
