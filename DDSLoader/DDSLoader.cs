@@ -16,7 +16,7 @@ namespace Kerwis.DDSLoader
 
         //public static DDSLoader Instance = new DDSLoader();
 
-        private static Dictionary<string, Texture2D> ReferenceCache = new Dictionary<string, Texture2D>();
+        private static readonly Dictionary<string, Texture2D> ReferenceCache = new Dictionary<string, Texture2D>();
         /*
         private static int GetByteArrayHashCode(byte[] array)
         {
@@ -52,8 +52,7 @@ namespace Kerwis.DDSLoader
         public static Texture2D FromFile(string DDSPath)
         {
             //如果加载过了,就直接返回之前加载的
-            if(ReferenceCache.ContainsKey(DDSPath)) return ReferenceCache[DDSPath];
-
+            if (ReferenceCache.TryGetValue(DDSPath, out Texture2D texture)) return texture;
             //加载所有字节
             byte[] DDSBytes;
             string ddsName = Path.GetFileName(DDSPath);
@@ -63,7 +62,7 @@ namespace Kerwis.DDSLoader
             }
             catch(Exception e)
             {
-                Debug.LogError("DDSLoader:Error while loading " + ddsName + ":\n" + e.GetType() + "\n:" + e.Message);
+                Debug.LogError($"DDSLoader:Error while loading {ddsName}:\n{e.GetType()}\n:{e.Message}");
                 return null;
             }
             //int DDSHash = GetByteArrayHashCode(DDSBytes);
@@ -74,7 +73,7 @@ namespace Kerwis.DDSLoader
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
             {
-                Debug.LogError("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
+                Debug.LogError($"DDSLoader:{ddsName} is not a dds file!(dwMagic is not \"DDS \")");
                 ddsHandle.Free();
                 return null;
             }
@@ -104,7 +103,7 @@ namespace Kerwis.DDSLoader
         // <returns>获得的纹理.如果失败则返回空</returns>
         public static Texture2D FromFile(string DDSPath,TextureFormat textureFormat)
         {
-            if (ReferenceCache.ContainsKey(DDSPath)) return ReferenceCache[DDSPath];
+            if (ReferenceCache.TryGetValue(DDSPath, out Texture2D texture)) return texture;
 
             byte[] DDSBytes;
             string ddsName = Path.GetFileName(DDSPath);
@@ -114,7 +113,7 @@ namespace Kerwis.DDSLoader
             }
             catch (Exception e)
             {
-                Debug.LogError("DDSLoader:Error while loading " + ddsName + ":\n" + e.GetType() + "\n:" + e.Message);
+                Debug.LogError($"DDSLoader:Error while loading {ddsName}:\n{e.GetType()}\n:{e.Message}");
                 return null;
             }
             //int DDSHash = GetByteArrayHashCode(DDSBytes);
@@ -122,7 +121,7 @@ namespace Kerwis.DDSLoader
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
             {
-                Debug.LogError("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
+                Debug.LogError($"DDSLoader:{ddsName} is not a dds file!(dwMagic is not \"DDS \")");
                 ddsHandle.Free();
                 return null;
             }
@@ -149,7 +148,7 @@ namespace Kerwis.DDSLoader
         // <returns></returns>
         public static Texture2D FromFile(string DDSPath, GraphicsFormat graphicsFormat, TextureCreationFlags flags)
         {
-            if (ReferenceCache.ContainsKey(DDSPath)) return ReferenceCache[DDSPath];
+            if (ReferenceCache.TryGetValue(DDSPath, out Texture2D texture)) return texture;
 
             byte[] DDSBytes;
             string ddsName = Path.GetFileName(DDSPath);
@@ -159,7 +158,7 @@ namespace Kerwis.DDSLoader
             }
             catch (Exception e)
             {
-                Debug.LogError("DDSLoader:Error while loading " + ddsName + ":\n" + e.GetType() + "\n:" + e.Message);
+                Debug.LogError($"DDSLoader:Error while loading {ddsName}:\n{e.GetType()}\n:{e.Message}");
                 return null;
             }
             //int DDSHash = GetByteArrayHashCode(DDSBytes);
@@ -167,7 +166,7 @@ namespace Kerwis.DDSLoader
             IntPtr Address = ddsHandle.AddrOfPinnedObject();
             if (Marshal.ReadInt32(Address) != 0x20534444)
             {
-                Debug.LogError("DDSLoader:" + ddsName + " is not a dds file!(dwMagic is not \"DDS \")");
+                Debug.LogError($"DDSLoader:{ddsName} is not a dds file!(dwMagic is not \"DDS \")");
                 ddsHandle.Free();
                 return null;
             }
@@ -223,7 +222,7 @@ namespace Kerwis.DDSLoader
                     case 'U' | ('Y' << 8) | ('V' << 16) | ('Y' << 24): throw new DDSFormatException("UYVY no longer supported by Unity.");
                     case 'Y' | ('U' << 8) | ('Y' << 16) | ('2' << 24): throw new DDSFormatException("YUY2 no longer supported by Unity.");
                     case 117: throw new DDSFormatException("CxV8U8 no longer supported by Unity.");
-                    default: throw new DDSFormatException("Unknown FourCC:0x"+FourCC.ToString("X"));
+                    default: throw new DDSFormatException($"Unknown FourCC:0x{FourCC.ToString("X")}");
                 }
                 switch((DXGI_FORMAT)Marshal.ReadInt32(DDSAddress, DXT10Header_ByteOffset + BytesPerInt)) //header Size+dw Magic Size
                 {
@@ -269,7 +268,7 @@ namespace Kerwis.DDSLoader
                         if (DDPF_ALPHAPIXELS) return GraphicsFormat.R16G16B16A16_SFloat;
                         else return GraphicsFormat.R32G32_SFloat;
                     case 128: return GraphicsFormat.R32G32B32A32_SFloat;
-                    default: throw new DDSFormatException("uncompressed dds with unsupported RGBBitCount:" + dwRGBBitCount);
+                    default: throw new DDSFormatException($"uncompressed dds with unsupported RGBBitCount:{dwRGBBitCount}");
                 }
             }
         }
